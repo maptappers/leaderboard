@@ -27,20 +27,36 @@
   html,body{ margin:0; padding:0; }
   body{
     background:
-      radial-gradient(circle at 8% 12%, rgba(255,255,255,0.16) 0, transparent 40%),
-      radial-gradient(circle at 92% 85%, rgba(255,255,255,0.12) 0, transparent 45%),
-      linear-gradient(180deg, var(--sky) 0%, var(--sky-deep) 100%);
+      radial-gradient(circle at 50% 30%, #6cc9f7 0%, var(--sky) 45%, var(--sky-deep) 100%);
     background-attachment: fixed;
     color: var(--ink);
     font-family:'Nunito', sans-serif;
     min-height:100vh;
     -webkit-font-smoothing: antialiased;
   }
-  .wrap{ max-width: 780px; margin: 0 auto; padding: 48px 18px 80px; }
+  .wrap{ max-width: 780px; margin: 0 auto; padding: 48px 18px 80px; position: relative; z-index: 1; }
 
   /* ---------- Header ---------- */
   header{ display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom: 36px; }
   .pin{ width:72px; height:72px; margin-bottom:8px; filter: drop-shadow(0 4px 0 rgba(24,43,69,0.25)); }
+  .globe-surface{
+    animation: globeScroll 8s linear infinite;
+  }
+  @keyframes globeScroll{
+    from { transform: translateX(0); }
+    to   { transform: translateX(-52px); }
+  }
+  .map-pin{
+    transform-origin: 50px 35px;
+    animation: pinBounce 2.8s ease-in-out infinite;
+  }
+  @keyframes pinBounce{
+    0%, 100%{ transform: translateY(0); }
+    50%{ transform: translateY(-4px); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
   .wordmark{
     font-family:'Fredoka', sans-serif;
     font-weight: 700;
@@ -72,6 +88,19 @@
 
   /* ---------- Section headings ---------- */
   section{ margin-bottom: 40px; }
+  section.reveal{ opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.7s cubic-bezier(.2,.8,.2,1); }
+  section.reveal.revealed{ opacity: 1; transform: translateY(0); }
+
+  /* ---------- Background: static grid ---------- */
+  .bg-grid{
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.35) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.35) 1px, transparent 1px);
+    background-size: 46px 46px;
+    opacity: 0.42;
+  }
+
   .section-head{
     margin: 0 0 14px;
     display:flex; align-items:center; justify-content:space-between; gap: 10px; flex-wrap:wrap;
@@ -120,7 +149,13 @@
     font-family:'Fredoka', sans-serif; font-weight: 600; font-size: 15px;
     color: var(--ink); background: var(--sky-pale); border: 2.5px solid var(--ink);
   }
-  .row.rank-1{ background: var(--sun); box-shadow: 5px 5px 0 rgba(24,43,69,0.55); }
+  .row.rank-1{ background: var(--sun); box-shadow: 5px 5px 0 rgba(24,43,69,0.55); position: relative; overflow: hidden; }
+  .row.rank-1::after{
+    content: ''; position: absolute; top: 0; left: -60%; width: 40%; height: 100%;
+    background: linear-gradient(115deg, transparent 0%, rgba(255,255,255,0.55) 50%, transparent 100%);
+    animation: sheen 4s ease-in-out infinite; animation-delay: 0.5s;
+  }
+  @keyframes sheen{ 0%{ left: -60%; } 70%, 100%{ left: 130%; } }
   .row.rank-1 .badge{ background:#FFFFFF; box-shadow: 0 0 0 3px var(--sun) inset; }
   .row.rank-2{ background: var(--silver); }
   .row.rank-2 .badge{ background:#FFFFFF; box-shadow: 0 0 0 3px var(--silver-deep) inset; }
@@ -299,38 +334,55 @@
 </style>
 </head>
 <body>
+<div class="bg-grid" aria-hidden="true"></div>
 <div class="wrap">
 
   <header>
     <svg class="pin" viewBox="0 0 72 72" fill="none" aria-hidden="true" focusable="false">
       <defs>
         <clipPath id="globeClip"><circle cx="34" cy="38" r="26"/></clipPath>
+        <linearGradient id="globeShade" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.4"/>
+          <stop offset="40%" stop-color="#FFFFFF" stop-opacity="0"/>
+          <stop offset="100%" stop-color="#0B1D33" stop-opacity="0.3"/>
+        </linearGradient>
+        <g id="surfaceContent">
+          <!-- North America -->
+          <path d="M12 20c5-2 12-1 16 2 3 2 1 5-2 6-2 1-3 3-5 4-2 1-3-1-4-3-2-3-6-4-7-7 0-1 1-2 2-2Z"
+                fill="#2FD08A" stroke="#182B45" stroke-width="1.8" stroke-linejoin="round"/>
+          <!-- South America -->
+          <path d="M21 34c3-1 5 1 5 4 0 4-1 8-3 11-1 2-4 2-5 0-1-4 0-8 1-11 0-2 1-3 2-4Z"
+                fill="#2FD08A" stroke="#182B45" stroke-width="1.8" stroke-linejoin="round"/>
+          <!-- Europe / Africa -->
+          <path d="M38 22c4-1 8 0 10 2 1 2-1 4-3 5 1 3 2 6 1 9-1 4-3 8-6 10-2 1-4 0-4-3-1-5 0-10 1-15-1-3-1-6 1-8Z"
+                fill="#2FD08A" stroke="#182B45" stroke-width="1.8" stroke-linejoin="round"/>
+          <!-- Asia -->
+          <path d="M50 20c6 1 10 4 12 8 1 3-2 5-5 5-3 1-6-1-8-3-2-3-3-6-2-8 0-2 2-2 3-2Z"
+                fill="#2FD08A" stroke="#182B45" stroke-width="1.8" stroke-linejoin="round"/>
+          <!-- Australia -->
+          <path d="M53 46c3-1 6 1 6 4s-3 5-6 4-4-3-3-5c0-2 1-3 3-3Z"
+                fill="#2FD08A" stroke="#182B45" stroke-width="1.8" stroke-linejoin="round"/>
+        </g>
       </defs>
       <!-- ocean -->
       <circle cx="34" cy="38" r="26" fill="#4EB6EF" stroke="#182B45" stroke-width="3.5"/>
       <g clip-path="url(#globeClip)">
-        <!-- graticule -->
-        <path d="M8 38h52M10 27h48M10 49h48" stroke="#182B45" stroke-width="1.6" opacity="0.3"/>
-        <ellipse cx="34" cy="38" rx="12" ry="26" stroke="#182B45" stroke-width="1.6" opacity="0.3"/>
-        <!-- North America -->
-        <path d="M12 20c5-2 12-1 16 2 3 2 1 5-2 6-2 1-3 3-5 4-2 1-3-1-4-3-2-3-6-4-7-7 0-1 1-2 2-2Z"
-              fill="#2FD08A" stroke="#182B45" stroke-width="1.8" stroke-linejoin="round"/>
-        <!-- South America -->
-        <path d="M21 34c3-1 5 1 5 4 0 4-1 8-3 11-1 2-4 2-5 0-1-4 0-8 1-11 0-2 1-3 2-4Z"
-              fill="#2FD08A" stroke="#182B45" stroke-width="1.8" stroke-linejoin="round"/>
-        <!-- Europe / Africa -->
-        <path d="M38 22c4-1 8 0 10 2 1 2-1 4-3 5 1 3 2 6 1 9-1 4-3 8-6 10-2 1-4 0-4-3-1-5 0-10 1-15-1-3-1-6 1-8Z"
-              fill="#2FD08A" stroke="#182B45" stroke-width="1.8" stroke-linejoin="round"/>
-        <!-- Asia -->
-        <path d="M50 20c6 1 10 4 12 8 1 3-2 5-5 5-3 1-6-1-8-3-2-3-3-6-2-8 0-2 2-2 3-2Z"
-              fill="#2FD08A" stroke="#182B45" stroke-width="1.8" stroke-linejoin="round"/>
-        <!-- Australia -->
-        <path d="M53 46c3-1 6 1 6 4s-3 5-6 4-4-3-3-5c0-2 1-3 3-3Z"
-              fill="#2FD08A" stroke="#182B45" stroke-width="1.8" stroke-linejoin="round"/>
+        <!-- two tiled copies of the landmasses, scrolled as one unit — a seamless, one-direction "planet turning" loop -->
+        <g class="globe-surface">
+          <use href="#surfaceContent"/>
+          <use href="#surfaceContent" x="52"/>
+        </g>
+        <!-- static latitude grid (doesn't scroll — these rings don't move as the sphere turns beneath them) -->
+        <path d="M8 38h52M10 27h48M10 49h48" stroke="#182B45" stroke-width="1.6" opacity="0.25"/>
       </g>
+      <!-- shading for a rounded, 3D read: soft highlight upper-left, shadow lower-right -->
+      <circle cx="34" cy="38" r="26" fill="url(#globeShade)"/>
+      <circle cx="34" cy="38" r="26" fill="none" stroke="#182B45" stroke-width="3.5"/>
       <!-- map pin planted on the globe -->
-      <path d="M50 6c-6.6 0-12 4.9-12 11.1C38 25.5 50 35 50 35s12-9.5 12-17.9C62 10.9 56.6 6 50 6Z" fill="#FF6152" stroke="#182B45" stroke-width="3.5" stroke-linejoin="round"/>
-      <circle cx="50" cy="17" r="4.6" fill="#FFC93C" stroke="#182B45" stroke-width="2.6"/>
+      <g class="map-pin">
+        <path d="M50 6c-6.6 0-12 4.9-12 11.1C38 25.5 50 35 50 35s12-9.5 12-17.9C62 10.9 56.6 6 50 6Z" fill="#FF6152" stroke="#182B45" stroke-width="3.5" stroke-linejoin="round"/>
+        <circle cx="50" cy="17" r="4.6" fill="#FFC93C" stroke="#182B45" stroke-width="2.6"/>
+      </g>
     </svg>
     <h1 class="wordmark">Binyan Map Tappers</h1>
     <div class="badge-pill" id="live-pill">🟢 Live Leaderboard</div>
@@ -545,12 +597,14 @@ function openPlayerModal(player){
 }
 
 function renderBoard(el, standings){
+  const isRefresh = el.dataset.rendered === 'true';
+
   el.innerHTML = '';
   let rank = 0;
   standings.forEach(row => {
     const div = document.createElement('div');
     let classes = 'row';
-    let badgeContent, statHtml, medalHtml = '';
+    let badgeContent, medalHtml = '', lbl, displayVal, isZero = false;
     if(row.qualified){
       rank++;
       if(rank === 1) classes += ' rank-1';
@@ -558,14 +612,19 @@ function renderBoard(el, standings){
       else if(rank === 3) classes += ' rank-3';
       if(rank <= 3) medalHtml = `<span class="medal">${MEDALS[rank-1]}</span>`;
       badgeContent = rank;
-      statHtml = `<div class="num">${row.avg.toFixed(1)}</div><div class="lbl">avg top ${QUALIFY_THRESHOLD}</div>`;
+      lbl = `avg top ${QUALIFY_THRESHOLD}`;
+      displayVal = row.avg;
     } else {
       classes += ' unqualified';
       badgeContent = '–';
-      statHtml = `<div class="num zero">0</div><div class="lbl">not enough rounds</div>`;
+      lbl = 'not enough rounds';
+      displayVal = 0;
+      isZero = true;
     }
     div.className = classes;
-    div.style.animationDelay = (rank * 0.04) + 's';
+    if(isRefresh) div.style.animation = 'none'; // skip the fade-in "pop" on background refreshes
+    else div.style.animationDelay = (rank * 0.04) + 's';
+    div.dataset.player = row.player;
     div.setAttribute('tabindex', '0');
     div.setAttribute('role', 'button');
     div.setAttribute('aria-label', `${row.player}, tap for full stats`);
@@ -573,7 +632,7 @@ function renderBoard(el, standings){
       <div class="badge"><span>${badgeContent}</span></div>
       <div class="who"><div class="name">${row.player}${medalHtml}</div></div>
       <div class="stats">
-        <div class="stat main">${statHtml}</div>
+        <div class="stat main"><div class="num${isZero ? ' zero' : ''}">${isZero ? '0' : displayVal.toFixed(1)}</div><div class="lbl">${lbl}</div></div>
       </div>
       <div class="tap-hint">›</div>
     `;
@@ -581,9 +640,13 @@ function renderBoard(el, standings){
     div.addEventListener('keydown', (e) => {
       if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openPlayerModal(row.player); }
     });
-    div.addEventListener('animationend', () => { div.style.animation = 'none'; }, { once: true });
+    if(!isRefresh){
+      div.addEventListener('animationend', () => { div.style.animation = 'none'; }, { once: true });
+    }
     el.appendChild(div);
   });
+
+  el.dataset.rendered = 'true';
 }
 
 function renderMonthCard(mk){
@@ -801,6 +864,23 @@ function refreshApp(newData){
   renderCompareTable();
 
   document.getElementById('footer-note').textContent = 'Binyan Map Tappers Leaderboard · scores sourced from the team scoreboard';
+}
+
+// ---- Scroll reveal: below-the-fold sections fade/slide in once as you reach them ----
+const revealSections = Array.from(document.querySelectorAll('section')).slice(1); // skip Standings, it's above the fold
+revealSections.forEach(s => s.classList.add('reveal'));
+if('IntersectionObserver' in window){
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        entry.target.classList.add('revealed');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  revealSections.forEach(s => io.observe(s));
+} else {
+  revealSections.forEach(s => s.classList.add('revealed'));
 }
 
 // ---- Modals: wired once, independent of data refreshes ----
