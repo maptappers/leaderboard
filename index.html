@@ -101,6 +101,27 @@
     opacity: 0.42;
   }
 
+  /* ---------- Background: drifting clouds + flight-path parallax ---------- */
+  .bg-fx{ position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  .cloud{
+    position: absolute; left: -180px;
+    animation: cloudDrift linear infinite;
+    will-change: transform;
+  }
+  .cloud svg{ display: block; }
+  @keyframes cloudDrift{
+    from{ transform: translateX(0); }
+    to{ transform: translateX(calc(100vw + 360px)); }
+  }
+  .cloud-1{ top: 4%;  opacity: 0.6;  animation-duration: 32s; }
+  .cloud-2{ top: 18%; opacity: 0.35; animation-duration: 50s; animation-delay: -12s; }
+  .cloud-3{ top: 33%; opacity: 0.7;  animation-duration: 27s; animation-delay: -5s; }
+  .cloud-4{ top: 48%; opacity: 0.42; animation-duration: 44s; animation-delay: -22s; }
+  .cloud-5{ top: 64%; opacity: 0.55; animation-duration: 36s; animation-delay: -9s; }
+  .cloud-6{ top: 80%; opacity: 0.3;  animation-duration: 58s; animation-delay: -30s; }
+
+  .flight-paths{ position: absolute; inset: 0; width: 100%; height: 100%; }
+
   .section-head{
     margin: 0 0 14px;
     display:flex; align-items:center; justify-content:space-between; gap: 10px; flex-wrap:wrap;
@@ -335,6 +356,15 @@
 </head>
 <body>
 <div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-fx" aria-hidden="true">
+  <svg class="flight-paths"></svg>
+  <div class="cloud cloud-1"><svg width="130" height="50" viewBox="0 0 130 50"><ellipse cx="32" cy="31" rx="30" ry="17" fill="#fff"/><ellipse cx="65" cy="21" rx="26" ry="21" fill="#fff"/><ellipse cx="98" cy="31" rx="28" ry="16" fill="#fff"/></svg></div>
+  <div class="cloud cloud-2"><svg width="90" height="36" viewBox="0 0 90 36"><ellipse cx="22" cy="22" rx="20" ry="12" fill="#fff"/><ellipse cx="46" cy="16" rx="18" ry="15" fill="#fff"/><ellipse cx="70" cy="22" rx="18" ry="11" fill="#fff"/></svg></div>
+  <div class="cloud cloud-3"><svg width="160" height="58" viewBox="0 0 160 58"><ellipse cx="38" cy="36" rx="34" ry="19" fill="#fff"/><ellipse cx="80" cy="24" rx="30" ry="24" fill="#fff"/><ellipse cx="122" cy="36" rx="32" ry="18" fill="#fff"/></svg></div>
+  <div class="cloud cloud-4"><svg width="105" height="40" viewBox="0 0 105 40"><ellipse cx="26" cy="24" rx="22" ry="13" fill="#fff"/><ellipse cx="54" cy="17" rx="20" ry="17" fill="#fff"/><ellipse cx="82" cy="24" rx="20" ry="12" fill="#fff"/></svg></div>
+  <div class="cloud cloud-5"><svg width="130" height="48" viewBox="0 0 130 48"><ellipse cx="30" cy="29" rx="28" ry="16" fill="#fff"/><ellipse cx="62" cy="19" rx="25" ry="20" fill="#fff"/><ellipse cx="95" cy="29" rx="27" ry="15" fill="#fff"/></svg></div>
+  <div class="cloud cloud-6"><svg width="85" height="34" viewBox="0 0 85 34"><ellipse cx="20" cy="20" rx="18" ry="11" fill="#fff"/><ellipse cx="42" cy="15" rx="16" ry="14" fill="#fff"/><ellipse cx="65" cy="20" rx="17" ry="10" fill="#fff"/></svg></div>
+</div>
 <div class="wrap">
 
   <header>
@@ -910,6 +940,133 @@ document.addEventListener('keydown', (e) => {
     document.querySelectorAll('.modal-overlay.open').forEach(o => closeModal(o));
   }
 });
+
+// ---- Flight paths: paper airplanes drawing dashed trails, spawning at random edges ----
+(function(){
+  const flightSvg = document.querySelector('.flight-paths');
+  if(!flightSvg) return;
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  function setViewBox(){
+    flightSvg.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`);
+  }
+  setViewBox();
+  window.addEventListener('resize', setViewBox);
+
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  let flightId = 0;
+  const MAX_CONCURRENT = 7;
+
+  function edgePoint(){
+    const W = window.innerWidth, H = window.innerHeight, m = 110;
+    const side = Math.floor(Math.random()*4);
+    if(side === 0) return { x: -m, y: Math.random()*H };
+    if(side === 1) return { x: W+m, y: Math.random()*H };
+    if(side === 2) return { x: Math.random()*W, y: -m };
+    return { x: Math.random()*W, y: H+m };
+  }
+
+  function spawnFlight(){
+   try {
+    const id = 'flight-' + (flightId++);
+    const start = edgePoint();
+    const end = edgePoint();
+    const mx = (start.x+end.x)/2, my = (start.y+end.y)/2;
+    const dx = end.x-start.x, dy = end.y-start.y;
+    const dist = Math.hypot(dx,dy) || 1;
+    const nx = -dy/dist, ny = dx/dist;
+    const bow = (0.15 + Math.random()*0.35) * dist * (Math.random() < 0.5 ? -1 : 1);
+    const cx = mx + nx*bow, cy = my + ny*bow;
+    const d = `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
+    const dur = 16 + Math.random()*12;
+    const maskId = id + '-mask';
+
+    const mask = document.createElementNS(SVG_NS, 'mask');
+    mask.setAttribute('id', maskId);
+    const maskPath = document.createElementNS(SVG_NS, 'path');
+    maskPath.setAttribute('d', d);
+    maskPath.setAttribute('fill', 'none');
+    maskPath.setAttribute('stroke', '#fff');
+    maskPath.setAttribute('stroke-width', '12');
+    maskPath.setAttribute('stroke-linecap', 'round');
+    maskPath.setAttribute('pathLength', '100');
+    maskPath.setAttribute('stroke-dasharray', '100');
+    maskPath.setAttribute('stroke-dashoffset', '100');
+    const maskAnim = document.createElementNS(SVG_NS, 'animate');
+    maskAnim.setAttribute('attributeName', 'stroke-dashoffset');
+    maskAnim.setAttribute('from', '100');
+    maskAnim.setAttribute('to', '0');
+    maskAnim.setAttribute('dur', dur + 's');
+    maskAnim.setAttribute('fill', 'freeze');
+    maskAnim.setAttribute('begin', 'indefinite');
+    maskPath.appendChild(maskAnim);
+    mask.appendChild(maskPath);
+
+    const trail = document.createElementNS(SVG_NS, 'path');
+    trail.setAttribute('d', d);
+    trail.setAttribute('fill', 'none');
+    trail.setAttribute('stroke', '#fff');
+    trail.setAttribute('stroke-width', '1.8');
+    trail.setAttribute('stroke-linecap', 'round');
+    trail.setAttribute('stroke-dasharray', '2 11');
+    trail.setAttribute('opacity', '0.3');
+    trail.setAttribute('mask', `url(#${maskId})`);
+    const fadeAnim = document.createElementNS(SVG_NS, 'animate');
+    fadeAnim.setAttribute('attributeName', 'opacity');
+    fadeAnim.setAttribute('values', '0.3;0.3;0');
+    fadeAnim.setAttribute('keyTimes', '0;0.8;1');
+    fadeAnim.setAttribute('dur', dur + 's');
+    fadeAnim.setAttribute('fill', 'freeze');
+    fadeAnim.setAttribute('begin', 'indefinite');
+    trail.appendChild(fadeAnim);
+
+    const plane = document.createElementNS(SVG_NS, 'g');
+    plane.setAttribute('transform', 'rotate(45)');
+    plane.setAttribute('opacity', '0.55');
+    const planeShape = document.createElementNS(SVG_NS, 'path');
+    planeShape.setAttribute('d', 'M16.7 -16.7 L5 16.7 L-1.7 1.7 L-16.7 -5 L16.7 -16.7 Z');
+    planeShape.setAttribute('fill', 'none');
+    planeShape.setAttribute('stroke', '#fff');
+    planeShape.setAttribute('stroke-width', '2.4');
+    planeShape.setAttribute('stroke-linejoin', 'round');
+    planeShape.setAttribute('stroke-linecap', 'round');
+    const planeCrease = document.createElementNS(SVG_NS, 'path');
+    planeCrease.setAttribute('d', 'M16.7 -16.7 L-1.7 1.7');
+    planeCrease.setAttribute('fill', 'none');
+    planeCrease.setAttribute('stroke', '#fff');
+    planeCrease.setAttribute('stroke-width', '2.4');
+    planeCrease.setAttribute('stroke-linecap', 'round');
+    plane.appendChild(planeShape);
+    plane.appendChild(planeCrease);
+    const move = document.createElementNS(SVG_NS, 'animateMotion');
+    move.setAttribute('dur', dur + 's');
+    move.setAttribute('rotate', 'auto');
+    move.setAttribute('path', d);
+    move.setAttribute('fill', 'freeze');
+    move.setAttribute('begin', 'indefinite');
+    plane.appendChild(move);
+
+    flightSvg.appendChild(mask);
+    flightSvg.appendChild(trail);
+    flightSvg.appendChild(plane);
+    maskAnim.beginElement();
+    fadeAnim.beginElement();
+    move.beginElement();
+
+    setTimeout(() => {
+      mask.remove(); trail.remove(); plane.remove();
+      setTimeout(spawnFlight, 600 + Math.random() * 5000);
+    }, (dur + 0.3) * 1000);
+   } catch(err){
+     setTimeout(spawnFlight, 3000 + Math.random() * 2000);
+   }
+  }
+
+  for(let i = 0; i < MAX_CONCURRENT; i++){
+    setTimeout(spawnFlight, Math.random() * 9000);
+  }
+})();
 
 // ---- Boot: load live data now, then keep it fresh in the background ----
 loadData().then(refreshApp);
