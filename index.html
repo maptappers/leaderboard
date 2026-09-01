@@ -855,11 +855,17 @@ function refreshApp(newData){
     'Last updated ' + new Date(lastDate+'T00:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
 
   const today = new Date();
-  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-  const daysLeft = Math.max(0, Math.ceil((monthEnd - today) / 86400000));
-  document.getElementById('countdown-sub').textContent = daysLeft === 0 ? '🔥 Last day of the month!'
-    : daysLeft === 1 ? '🔥 1 day left this month'
-    : `🔥 ${daysLeft} days left this month`;
+  const [curYear, curMonth] = currentMonthKey.split('-').map(Number);
+  const isLiveMonth = curYear === today.getFullYear() && curMonth === today.getMonth() + 1;
+  if(isLiveMonth){
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    const daysLeft = Math.max(0, Math.ceil((monthEnd - today) / 86400000));
+    document.getElementById('countdown-sub').textContent = daysLeft === 0 ? '🔥 Last day of the month!'
+      : daysLeft === 1 ? '🔥 1 day left this month'
+      : `🔥 ${daysLeft} days left this month`;
+  } else {
+    document.getElementById('countdown-sub').textContent = '';
+  }
 
   statsByPlayer = {};
   DATA.players.forEach(player => {
